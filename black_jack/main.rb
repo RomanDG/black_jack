@@ -4,5 +4,6 @@ require "./class/bank"
 require "./class/cards"
 require "./class/engine_game"
 
+# игра black jack
 game = EngineGame.new
 game.start_game
