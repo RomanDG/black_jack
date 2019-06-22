@@ -5,61 +5,55 @@ class EngineGame
     @player = Player.new
     @bank = Bank.new
     @cards = Cards.new
+    @ui = UserInterface.new
   end
 
   def start_game
-    get_name                # получить имя игрока
+    @player.set_name @ui.get_name                # получить имя игрока
 
     loop do
-      if (@bank.player_money > 0) && (@bank.dealer_money == 0)
-        puts "++++++++++++++++++++++++++++++++++++++++++++++"
-        puts "\nАбсолютный победитель игры: #{@player.name}\n"
-        puts "++++++++++++++++++++++++++++++++++++++++++++++"
-      elsif (@bank.dealer_money > 0) && (@bank.player_money == 0)
-        puts "++++++++++++++++++++++++++++++++++++++++++++++"
-        puts "\nАбсолютный победитель игры: Dealer\n"
-        puts "++++++++++++++++++++++++++++++++++++++++++++++"
-      end
+      @ui.winner @player if (@bank.player_money > 0) && (@bank.dealer_money == 0)
+      @ui.winner @dealer if (@bank.dealer_money > 0) && (@bank.player_money == 0)
 
       deal_first_two_cards  # сдать первые две карты каждому участнику игры
       bet_money             # внести деньги в банк
-      show_my_data
+      @ui.current_data @player, @dealer, @bank
 
       loop do
         if @player.cards.size == 3 && @dealer.cards.size == 3
-          open_cards
+          @ui.open_cards @player, @dealer, choose_winner
+          get_new_card_deck
           break
         end
-        puts "взять еще карту - 1 | пропустить - 2 | открыть карты - 3"
+
+        @ui.select_action
         case gets.chomp
         when "1"
           deal_one_card @player
           @dealer.points < 17 ? deal_one_card(@dealer) : next
           if @player.cards.size == 3 && @dealer.cards.size == 3
-            open_cards
+            @ui.open_cards @player, @dealer, choose_winner
+            get_new_card_deck
             break
           else
-            show_my_data
+            @ui.current_data @player, @dealer, @bank
           end
         when "2"
           deal_one_card @dealer
           if @player.cards.size == 3 && @dealer.cards.size == 3
-            open_cards
+            @ui.open_cards @player, @dealer, choose_winner
+            get_new_card_deck
             break
           else
-            show_my_data
+            @ui.current_data @player, @dealer, @bank
           end
         when "3"
-          open_cards
+          @ui.open_cards @player, @dealer, choose_winner
+          get_new_card_deck
           break
         end   
       end 
     end
-  end
-
-  def get_name
-    print "введите ваше имя: "
-    @player.set_name gets.chomp
   end
 
   def bet_money
@@ -94,42 +88,16 @@ class EngineGame
     player.points += calculate_points player, card.last
   end
 
-  # показываем информацию о картах, очка
-  def show_my_data
-    print "#{@player.name} cards: "
-    @player.cards.each{ |card| print card + " " }
-    print "[ points: #{@player.points} / 21 ] [ money: #{@bank.player_money} ]   |   "
-    print "Dealer cards: "
-    @dealer.cards.each{ |card| print "* " }
-    print "   [ money: #{@bank.dealer_money} ]"
-    puts ""
-  end
-
   def choose_winner
     if ((@player.points > @dealer.points) && @player.points <= 21) || ( @player.points < 21 && @dealer.points >= 21)
       @bank.player_money += @bank.bank_money
       @player.name
     elsif (@player.points == @dealer.points)
-      puts "ничья"
+      false
     else
       @bank.dealer_money += @bank.bank_money
-      "Dealer"
+      @dealer.name
     end
-  end
-
-  def open_cards
-    puts "======== stop game ========"
-    print "my cards: "
-    @player.cards.each{ |card| print card + " " }
-    print "  -  points: #{@player.points} / 21 ]"
-    print "   |   "
-    print "dealer cards: "
-    @dealer.cards.each{ |card| print card + " " }
-    print "  -  points: #{@dealer.points} / 21 ]\n"
-    puts "Winner is =========> #{choose_winner}"
-    puts "============================"
-    get_new_card_deck
-    puts ""
   end
 
   def get_new_card_deck
